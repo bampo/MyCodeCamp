@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -13,6 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using MyCodeCamp.Data;
 using MyCodeCamp.Data.Entities;
 using Newtonsoft.Json;
@@ -75,33 +78,70 @@ namespace MyCodeCamp
 
             services.AddIdentity<CampUser, IdentityRole>(opt => { })
                 .AddEntityFrameworkStores<CampContext>();
-            services.ConfigureApplicationCookie(opts =>
-            {
-                opts.Events = new CookieAuthenticationEvents()
-                {
-                    OnRedirectToLogin = ctx =>
-                    {
-                        if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == 200)
-                        {
-                            ctx.Response.StatusCode = 401;
-                        }
 
-                        return Task.CompletedTask;
-                    },
-                    OnRedirectToAccessDenied= ctx =>
-                    {
-                        if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == 200)
-                        {
-                            ctx.Response.StatusCode = 403;
-                        }
-
-                        return Task.CompletedTask;
-                    }
-
-                };
-            });
+//            services.ConfigureApplicationCookie(opts =>
+//            {
+//                opts.Events = new CookieAuthenticationEvents()
+//                {
+//                    OnRedirectToLogin = ctx =>
+//                    {
+//                        if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == 200)
+//                        {
+//                            ctx.Response.StatusCode = 401;
+//                        }
+//
+//                        return Task.CompletedTask;
+//                    },
+//                    OnRedirectToAccessDenied = ctx =>
+//                    {
+//                        if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == 200)
+//                        {
+//                            ctx.Response.StatusCode = 403;
+//                        }
+//
+//                        return Task.CompletedTask;
+//                    }
+//                };
+//            });
 
             services.AddScoped<SignInManager<CampUser>, SignInManager<CampUser>>();
+
+            var signingKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_config["Tokens:Key"]));
+
+//            var tokenValidationParameters = new TokenValidationParameters
+//            {
+//                RequireExpirationTime = true,
+//                RequireSignedTokens = true,
+//                ValidateIssuerSigningKey = true,
+//                IssuerSigningKey = signingKey,
+//                ValidateIssuer = true,
+//                ValidIssuer = _config["Tokens:Issuer"],
+//                ValidateAudience = true,
+//                ValidAudience = _config["Tokens:Audience"],
+//                ValidateLifetime = true,
+//                ClockSkew = TimeSpan.Zero
+//            };
+
+            services.AddAuthentication( opts =>
+                {
+                    opts.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
+                .AddJwtBearer(opts =>
+                {
+                    opts.RequireHttpsMetadata = false;
+                    opts.TokenValidationParameters = new TokenValidationParameters()
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = signingKey,
+                        ValidateIssuer = true,
+                        ValidIssuer = _config["Tokens:Issuer"],
+                        ValidateAudience = true,
+                        ValidAudience = _config["Tokens:Audience"],
+                        ValidateLifetime = true
+                        
+                    };
+
+                });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -112,6 +152,7 @@ namespace MyCodeCamp
             {
                 app.UseDeveloperExceptionPage();
             }
+
             app.UseCors(cfg =>
             {
 //                cfg.AllowAnyHeader()
@@ -120,12 +161,12 @@ namespace MyCodeCamp
             });
 
             app.UseAuthentication();
+
             app.UseMvc(
                 //     m => { m.MapRoute("MainAPIRoute", "api/{controller}/{action}"); }
             );
             seeder.Seed().Wait();
             identitySeeder.Seed().Wait();
-
         }
     }
 }

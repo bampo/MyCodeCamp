@@ -16,7 +16,6 @@ using MyCodeCamp.Models;
 namespace MyCodeCamp.Controllers
 {
     [Authorize]
-    [EnableCors("AnyGET")]
     [Route("api/[controller]")]
     [ValidateModel]
     public class CampsController : BaseController
