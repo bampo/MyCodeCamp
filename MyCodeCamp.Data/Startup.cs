@@ -30,14 +30,7 @@ namespace MyCodeCamp.Data
                 .AddEntityFrameworkStores<CampContext>()
                 .AddDefaultTokenProviders();
 
-//            services.AddMvc()
-//                .AddRazorPagesOptions(options =>
-//                {
-//                    options.Conventions.AuthorizeFolder("/Account/Manage");
-//                    options.Conventions.AuthorizePage("/Account/Logout");
-//                });
 
-            
             services.AddScoped<ICampRepository, CampRepository>();
         }
 
@@ -57,6 +50,7 @@ namespace MyCodeCamp.Data
 
             app.UseStaticFiles();
 
+            
             app.UseAuthentication();
 
             app.UseMvc();

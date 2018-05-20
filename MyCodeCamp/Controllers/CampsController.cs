@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -14,6 +15,7 @@ using MyCodeCamp.Models;
 
 namespace MyCodeCamp.Controllers
 {
+    [Authorize]
     [EnableCors("AnyGET")]
     [Route("api/[controller]")]
     [ValidateModel]

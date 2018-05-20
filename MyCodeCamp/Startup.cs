@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -12,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MyCodeCamp.Data;
+using MyCodeCamp.Data.Entities;
 using Newtonsoft.Json;
 
 namespace MyCodeCamp
@@ -54,36 +57,75 @@ namespace MyCodeCamp
             });
             services.AddMvc(opt =>
                     {
-                        if( !_env.IsProduction()) opt.SslPort = 44380;
+                        if (!_env.IsProduction()) opt.SslPort = 44380;
                         opt.Filters.Add(new RequireHttpsAttribute());
                     }
-                    
-                    )
-                
-                .AddJsonOptions(opt => { opt.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore; });
+                )
+                .AddJsonOptions(opt =>
+                {
+                    opt.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+                });
 
             services.AddScoped<ICampRepository, CampRepository>();
             services.AddTransient<CampDbInitializer>();
+            services.AddTransient<CampIdentityInitializer>();
 
             services.AddAutoMapper();
+
+
+            services.AddIdentity<CampUser, IdentityRole>(opt => { })
+                .AddEntityFrameworkStores<CampContext>();
+            services.ConfigureApplicationCookie(opts =>
+            {
+                opts.Events = new CookieAuthenticationEvents()
+                {
+                    OnRedirectToLogin = ctx =>
+                    {
+                        if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == 200)
+                        {
+                            ctx.Response.StatusCode = 401;
+                        }
+
+                        return Task.CompletedTask;
+                    },
+                    OnRedirectToAccessDenied= ctx =>
+                    {
+                        if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == 200)
+                        {
+                            ctx.Response.StatusCode = 403;
+                        }
+
+                        return Task.CompletedTask;
+                    }
+
+                };
+            });
+
+            services.AddScoped<SignInManager<CampUser>, SignInManager<CampUser>>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env
-        ,CampDbInitializer seeder)
+            , CampDbInitializer seeder, CampIdentityInitializer identitySeeder)
         {
-            if (env.IsDevelopment()) app.UseDeveloperExceptionPage();
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
             app.UseCors(cfg =>
             {
 //                cfg.AllowAnyHeader()
 //                    .AllowAnyMethod()
 //                    .WithOrigins();
-                
             });
+
+            app.UseAuthentication();
             app.UseMvc(
                 //     m => { m.MapRoute("MainAPIRoute", "api/{controller}/{action}"); }
             );
             seeder.Seed().Wait();
+            identitySeeder.Seed().Wait();
+
         }
     }
 }
