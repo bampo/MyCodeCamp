@@ -42,22 +42,22 @@ namespace MyCodeCamp
             {
                 options.UseSqlServer(_config.GetConnectionString("DefaultConnection"));
             });
-            services.AddCors(cfg =>
-            {
-                cfg.AddPolicy("Wildermuth", bldr =>
-                {
-                    bldr.AllowAnyHeader()
-                        .AllowAnyMethod()
-                        .WithOrigins("htttp://wildermuth.com");
-                });
-
-                cfg.AddPolicy("AnyGET", bldr =>
-                {
-                    bldr.AllowAnyHeader()
-                        .WithMethods("GET")
-                        .AllowAnyOrigin();
-                });
-            });
+//            services.AddCors(cfg =>
+//            {
+//                cfg.AddPolicy("Wildermuth", bldr =>
+//                {
+//                    bldr.AllowAnyHeader()
+//                        .AllowAnyMethod()
+//                        .WithOrigins("htttp://wildermuth.com");
+//                });
+//
+//                cfg.AddPolicy("AnyGET", bldr =>
+//                {
+//                    bldr.AllowAnyHeader()
+//                        .WithMethods("GET")
+//                        .AllowAnyOrigin();
+//                });
+//            });
             services.AddMvc(opt =>
                     {
                         if (!_env.IsProduction()) opt.SslPort = 44380;
@@ -75,56 +75,14 @@ namespace MyCodeCamp
 
             services.AddAutoMapper();
 
-
-            services.AddIdentity<CampUser, IdentityRole>(opt => { })
-                .AddEntityFrameworkStores<CampContext>();
-
-//            services.ConfigureApplicationCookie(opts =>
-//            {
-//                opts.Events = new CookieAuthenticationEvents()
-//                {
-//                    OnRedirectToLogin = ctx =>
-//                    {
-//                        if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == 200)
-//                        {
-//                            ctx.Response.StatusCode = 401;
-//                        }
-//
-//                        return Task.CompletedTask;
-//                    },
-//                    OnRedirectToAccessDenied = ctx =>
-//                    {
-//                        if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == 200)
-//                        {
-//                            ctx.Response.StatusCode = 403;
-//                        }
-//
-//                        return Task.CompletedTask;
-//                    }
-//                };
-//            });
-
-            services.AddScoped<SignInManager<CampUser>, SignInManager<CampUser>>();
-
             var signingKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_config["Tokens:Key"]));
 
-//            var tokenValidationParameters = new TokenValidationParameters
-//            {
-//                RequireExpirationTime = true,
-//                RequireSignedTokens = true,
-//                ValidateIssuerSigningKey = true,
-//                IssuerSigningKey = signingKey,
-//                ValidateIssuer = true,
-//                ValidIssuer = _config["Tokens:Issuer"],
-//                ValidateAudience = true,
-//                ValidAudience = _config["Tokens:Audience"],
-//                ValidateLifetime = true,
-//                ClockSkew = TimeSpan.Zero
-//            };
-
-            services.AddAuthentication( opts =>
+            services.AddAuthentication( sharedOptions =>
                 {
-                    opts.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                    sharedOptions.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                    sharedOptions.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                    sharedOptions.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    sharedOptions.DefaultForbidScheme = JwtBearerDefaults.AuthenticationScheme;
                 })
                 .AddJwtBearer(opts =>
                 {
@@ -142,6 +100,38 @@ namespace MyCodeCamp
                     };
 
                 });
+
+
+            services.AddIdentity<CampUser, IdentityRole>(opt => { })
+                .AddEntityFrameworkStores<CampContext>();
+
+            services.ConfigureApplicationCookie(opts =>
+            {
+                opts.Events = new CookieAuthenticationEvents()
+                {
+                    OnRedirectToLogin = ctx =>
+                    {
+                        if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == 200)
+                        {
+                            ctx.Response.StatusCode = 401;
+                        }
+
+                        return Task.CompletedTask;
+                    },
+                    OnRedirectToAccessDenied = ctx =>
+                    {
+                        if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == 200)
+                        {
+                            ctx.Response.StatusCode = 403;
+                        }
+
+                        return Task.CompletedTask;
+                    }
+                };
+            });
+
+            services.AddScoped<SignInManager<CampUser>, SignInManager<CampUser>>();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -153,12 +143,12 @@ namespace MyCodeCamp
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseCors(cfg =>
-            {
-//                cfg.AllowAnyHeader()
-//                    .AllowAnyMethod()
-//                    .WithOrigins();
-            });
+//            app.UseCors(cfg =>
+//            {
+////                cfg.AllowAnyHeader()
+////                    .AllowAnyMethod()
+////                    .WithOrigins();
+//            });
 
             app.UseAuthentication();
 

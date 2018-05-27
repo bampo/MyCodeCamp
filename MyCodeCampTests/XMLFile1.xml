@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8" ?> 
+<resultTable>
+  <metdata></metdata>
+  <columns>
+    <column name="n1" type="t1"/>
+    <column name="n2" type="t2"/>
+    <column name="n31" type="t3"/>
+  </columns>
+  <rows>
+    <row />
+  </rows>
+</resultTable>
